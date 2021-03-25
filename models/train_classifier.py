@@ -1,3 +1,9 @@
+import sys
+import pandas as pd
+import numpy as np
+import re
+import pickle
+
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -5,12 +11,6 @@ nltk.download('averaged_perceptron_tagger')
 nltk.download('maxent_ne_chunker')
 nltk.download('wordnet')
 nltk.download('words')
-
-import sys
-import pandas as pd
-import numpy as np
-import re
-import pickle
 
 from sqlalchemy import create_engine
 
@@ -46,12 +46,12 @@ def load_data(database_filepath):
     # read data from disaster_response table
     df = pd.read_sql("SELECT * from Disaster_Response", engine)
     # fetch X feature values and Y target values
-    X = df['message'].values
-    Y = df.iloc[:,4:].values
+    X = df['message']
+    Y = df.iloc[:,4:]
     # calculate category names (target labels)
     category_names = list(df.columns[4:])
-    print(df['message'].head())
-    print(df.iloc[:,4:].head())
+    print(X.head())
+    print(Y.head())
     print(category_names)
 
     return X, Y, category_names
@@ -64,6 +64,11 @@ def tokenize(text):
     Output:
         lemmatized_tokens: Tokenized and lemmatized text
     '''
+    reg_url = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    urls = re.findall(reg_url, text)
+    for url in urls:
+        text = text.replace(url, "urlplaceholder")
+        
     text = re.sub(r"[^a-zA-Z0-9]", " ", text)
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
@@ -151,14 +156,17 @@ def evaluate_model(model, X_test, Y_test, category_names):
 def display_results(Y_test, y_pred, category_names):
     # iterate all col and print scores for each column
     for i, col in enumerate(category_names):
-        print('column name:: {}'.format(col))
+        # print('column name:: {}'.format(col))
+        print("Category:", col, "\n", classification_report(Y_test.iloc[:, i].values, y_pred[:, i]))
+        print('Accuracy of %25s: %.2f' %(col, accuracy_score(Y_test.iloc[:, i].values, y_pred[:, i])))
         # calculate accuracy
-        accuracy = accuracy_score(Y_test[i], y_pred[i])
+        # accuracy = accuracy_score(Y_test[i], y_pred[i])
         # calculate precision
-        precision = precision_score(Y_test[i], y_pred[i])
+        # precision = precision_score(Y_test[i], y_pred[i])
         # calculate recall score
-        recall = recall_score(Y_test[i], y_pred[i])
-        print("\tAccuracy:: {0:.2f} \tPrecision:: {0:.2f} \tRecall:: {0:.2f}\n".format(accuracy, precision, recall))
+        # recall = recall_score(Y_test[i], y_pred[i])
+        # print("\tAccuracy:: {0:.2f} \tPrecision:: {0:.2f} \tRecall:: {0:.2f}\n".format(accuracy, precision, recall))
+        #print("Category:", category_names[i],"\n", classification_report(Y_test.iloc[:, i].values, y_pred[:, i]))
         
         
 def save_model(model, model_filepath):
